@@ -6,7 +6,7 @@ from collections import defaultdict
 
 def get_cpus(cpu_line):
     cpu_regex = r"CPU[0-9]+"
-    return re.findall(cpu_regex, cpu_line) 
+    return re.findall(cpu_regex, cpu_line)
 
 def sum_interrupts(num_cpus, split_line):
     cpu_sum = 0
@@ -29,7 +29,9 @@ def main():
             split_line = filter(None, line.strip("\n").replace(":", "").split(" "))
             cpu_sum = sum_interrupts(num_cpus, split_line)
             interrupt_dict[split_line[0]] = cpu_sum
-        print sorted(interrupt_dict, key=interrupt_dict.get, reverse=True)
+        top_interrupts = sorted(interrupt_dict, key=interrupt_dict.get, reverse=True)
+        for i in top_interrupts:
+            print "[%s] -> %s" % ()
 
 if __name__ == '__main__':
     main()
