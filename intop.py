@@ -21,7 +21,8 @@ def sum_interrupts(num_cpus, split_line):
     return cpu_sum
 
 def main():
-    interrupt_dict = {}
+    system("clear")
+    interrupt_dict = defaultdict(dict)
     with open("/proc/interrupts") as f:
         while True:
             for i, line in enumerate(f.readlines()):
@@ -30,11 +31,13 @@ def main():
                     num_cpus = len(cpus)
                     continue
                 split_line = filter(None, line.strip("\n").replace(":", "").split(" "))
+                device_name = " ".join(split_line[num_cpus+1:])
                 cpu_sum = sum_interrupts(num_cpus, split_line)
-                interrupt_dict[split_line[0]] = cpu_sum
-            top_interrupts = sorted(interrupt_dict, key=interrupt_dict.get, reverse=True)
+                interrupt_dict[split_line[0]]["name"] = device_name
+                interrupt_dict[split_line[0]]["sum"] = cpu_sum
+            top_interrupts = sorted(interrupt_dict, key=lambda i: interrupt_dict[i]["sum"], reverse=True)
             for i in top_interrupts:
-                print "[%s] -> %s" % (i, interrupt_dict[i])
+                print "%s (%s) -> %s" % (i, interrupt_dict[i]["name"], interrupt_dict[i]["sum"])
             sleep(2)
             system("clear")
 
