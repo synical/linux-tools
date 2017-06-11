@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import re
 
 from collections import defaultdict
@@ -9,8 +10,6 @@ from time import sleep
 #TODO
 #
 # Add arg for printing by overall sum
-# Add arg for printing by diff
-# Add arg for setting sleep interval
 
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
@@ -23,6 +22,11 @@ def diff_interrupt_sums(before, after):
 def get_cpus(cpu_line):
     cpu_regex = r"CPU[0-9]+"
     return re.findall(cpu_regex, cpu_line)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--interval", action="store", dest="interval", default=5, metavar="<interval>", help="Sampling interval")
+    return parser.parse_args()
 
 def parse_interrupts():
     interrupt_dict = defaultdict(dict)
@@ -56,10 +60,12 @@ def sum_interrupts(num_cpus, split_line):
     return cpu_sum
 
 def main():
+    args = parse_args()
     system("clear")
+    diff_interrupt_sums(parse_interrupts(), parse_interrupts())
     while True:
         interrupt_dict_before = parse_interrupts()
-        sleep(2)
+        sleep(float(args.interval))
         system("clear")
         interrupt_dict_after = parse_interrupts()
         diff_interrupt_sums(interrupt_dict_before, interrupt_dict_after)
