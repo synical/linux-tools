@@ -39,6 +39,8 @@ def parse_interrupts():
             split_line = filter(None, line.strip("\n").replace(":", "").split(" "))
             device_name = " ".join(split_line[num_cpus+1:])
             cpu_sum = sum_interrupts(num_cpus, split_line)
+            if cpu_sum == 0:
+                continue
             interrupt_dict[split_line[0]]["name"] = device_name
             interrupt_dict[split_line[0]]["sum"] = cpu_sum
         f.close()
