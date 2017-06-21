@@ -17,7 +17,7 @@ def diff_interrupt_sums(before, after):
         diff = max(v["sum"], after[k]["sum"]) - min(v["sum"], after[k]["sum"])
         interrupt_dict_diff[k]["name"] = v["name"]
         interrupt_dict_diff[k]["sum"] = diff
-    print_top_interrupts(interrupt_dict_diff)
+    return interrupt_dict_diff
 
 def get_cpus(cpu_line):
     cpu_regex = r"CPU[0-9]+"
@@ -61,16 +61,22 @@ def sum_interrupts(num_cpus, split_line):
             continue
     return cpu_sum
 
+def top_interrupt_loop(interval):
+    while True:
+        interrupt_dict_before = parse_interrupts()
+        sleep(interval)
+        system("clear")
+        interrupt_dict_after = parse_interrupts()
+        interrupts_diff = diff_interrupt_sums(interrupt_dict_before, interrupt_dict_after)
+        print "Interrupts per %s seconds\n" % (interval)
+        print_top_interrupts(interrupts_diff)
+
 def main():
     args = parse_args()
     system("clear")
-    diff_interrupt_sums(parse_interrupts(), parse_interrupts())
-    while True:
-        interrupt_dict_before = parse_interrupts()
-        sleep(float(args.interval))
-        system("clear")
-        interrupt_dict_after = parse_interrupts()
-        diff_interrupt_sums(interrupt_dict_before, interrupt_dict_after)
+    print "Top interrupts since boot\n"
+    print_top_interrupts(parse_interrupts())
+    top_interrupt_loop(float(args.interval))
 
 if __name__ == '__main__':
     main()
