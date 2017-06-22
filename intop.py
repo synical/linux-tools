@@ -7,10 +7,6 @@ from collections import defaultdict
 from os import system
 from time import sleep
 
-#TODO
-#
-# Add arg for printing by overall sum
-
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
     for k, v in before.iteritems():
