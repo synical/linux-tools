@@ -44,6 +44,8 @@ def parse_interrupts():
 
 def print_top_interrupts(interrupt_dict):
         top_interrupts = sorted(interrupt_dict, key=lambda i: interrupt_dict[i]["sum"], reverse=True)
+        total_interrupts = sum([v["sum"] for k,v in interrupt_dict.iteritems()])
+        print "Total -> %s" % (total_interrupts)
         for i in top_interrupts:
             print "%s (%s) -> %s" % (i, interrupt_dict[i]["name"], interrupt_dict[i]["sum"])
 
