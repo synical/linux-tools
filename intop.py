@@ -7,6 +7,9 @@ from collections import defaultdict
 from os import system
 from time import sleep
 
+# TODO
+# Ncurses for output
+
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
     for k, v in before.iteritems():
