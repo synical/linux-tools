@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
+import curses
 import argparse
 import re
 
 from collections import defaultdict
+from curses import wrapper
 from os import system
 from time import sleep
 
 # TODO
-# Ncurses for output
+# Top like UI with columns
 
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
@@ -45,12 +47,12 @@ def parse_interrupts():
         f.close()
     return interrupt_dict
 
-def print_top_interrupts(interrupt_dict):
+def print_top_interrupts(window, interrupt_dict):
         top_interrupts = sorted(interrupt_dict, key=lambda i: interrupt_dict[i]["sum"], reverse=True)
         total_interrupts = sum([v["sum"] for k,v in interrupt_dict.iteritems()])
-        print "Total -> %s" % (total_interrupts)
+        window.addstr("Total -> %s\n" % (total_interrupts))
         for i in top_interrupts:
-            print "%s (%s) -> %s" % (i, interrupt_dict[i]["name"], interrupt_dict[i]["sum"])
+            window.addstr("%s (%s) -> %s\n" % (i, interrupt_dict[i]["name"], interrupt_dict[i]["sum"]))
 
 def sum_interrupts(num_cpus, split_line):
     cpu_sum = 0
@@ -62,22 +64,23 @@ def sum_interrupts(num_cpus, split_line):
             continue
     return cpu_sum
 
-def top_interrupt_loop(interval):
+def top_interrupt_loop(window, interval):
     while True:
         interrupt_dict_before = parse_interrupts()
+        window.refresh()
         sleep(interval)
-        system("clear")
+        window.erase()
         interrupt_dict_after = parse_interrupts()
         interrupts_diff = diff_interrupt_sums(interrupt_dict_before, interrupt_dict_after)
-        print "Interrupts per %s seconds\n" % (interval)
-        print_top_interrupts(interrupts_diff)
+        window.addstr("Interrupts per %s seconds\n\n" % (interval))
+        print_top_interrupts(window, interrupts_diff)
 
-def main():
+def main(window):
     args = parse_args()
-    system("clear")
-    print "Top interrupts since boot\n"
-    print_top_interrupts(parse_interrupts())
-    top_interrupt_loop(float(args.interval))
+    curses.curs_set(0)
+    window.addstr("Top interrupts since boot\n\n")
+    print_top_interrupts(window, parse_interrupts())
+    top_interrupt_loop(window, float(args.interval))
 
 if __name__ == '__main__':
-    main()
+    wrapper(main)
