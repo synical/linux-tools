@@ -6,13 +6,11 @@ import re
 
 from collections import defaultdict
 from curses import wrapper
-from os import system
 from time import sleep
 
 # TODO
 # Top like UI with columns
-# Fix output when number of interrupts is huge
-# Add filter by interrupt
+# Fix output when number of interrupts is huge (scrolling)
 
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
@@ -28,12 +26,7 @@ def get_cpus(cpu_line):
     cpu_regex = r"CPU[0-9]+"
     return re.findall(cpu_regex, cpu_line)
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--interval", action="store", dest="interval", default=5, metavar="<interval>", help="Sampling interval")
-    return parser.parse_args()
-
-def parse_interrupts():
+def parse_interrupts(interrupt_filter=False):
     interrupt_dict = defaultdict(dict)
     with open("/proc/interrupts") as f:
         for i, line in enumerate(f.readlines()):
@@ -42,6 +35,8 @@ def parse_interrupts():
                 num_cpus = len(cpus)
                 continue
             split_line = filter(None, line.strip().replace(":", "").split())
+            if interrupt_filter and split_line[0] != interrupt_filter:
+                continue
             device_name = " ".join(split_line[num_cpus+1:])
             cpu_sum = sum_interrupts(num_cpus, split_line)
             if cpu_sum == 0:
@@ -68,23 +63,29 @@ def sum_interrupts(num_cpus, split_line):
             continue
     return cpu_sum
 
-def top_interrupt_loop(window, interval):
+def top_interrupt_loop(window, interval, interrupt_filter):
     while True:
-        interrupt_dict_before = parse_interrupts()
+        interrupt_dict_before = parse_interrupts(interrupt_filter)
         window.refresh()
         sleep(interval)
         window.erase()
-        interrupt_dict_after = parse_interrupts()
+        interrupt_dict_after = parse_interrupts(interrupt_filter)
         interrupts_diff = diff_interrupt_sums(interrupt_dict_before, interrupt_dict_after)
         window.addstr("Interrupts per %s seconds\n\n" % (interval))
         print_top_interrupts(window, interrupts_diff)
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--interval", action="store", dest="interval", default=5, metavar="<interval>", help="Sampling interval")
+    parser.add_argument("-f", "--filter", action="store", dest="interrupt_filter", metavar="<interrupt number>", help="Interrupt filter")
+    return parser.parse_args()
 
 def main(window):
     args = parse_args()
     curses.curs_set(0)
     window.addstr("Top interrupts since boot\n\n")
-    print_top_interrupts(window, parse_interrupts())
-    top_interrupt_loop(window, float(args.interval))
+    print_top_interrupts(window, parse_interrupts(args.interrupt_filter))
+    top_interrupt_loop(window, float(args.interval), args.interrupt_filter)
 
 if __name__ == '__main__':
     wrapper(main)
