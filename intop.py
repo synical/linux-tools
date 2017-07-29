@@ -17,6 +17,8 @@ def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
     for k, v in before.iteritems():
         diff = max(v["sum"], after[k]["sum"]) - min(v["sum"], after[k]["sum"])
+        if diff == 0:
+            continue
         interrupt_dict_diff[k]["name"] = v["name"]
         interrupt_dict_diff[k]["sum"] = diff
     return interrupt_dict_diff
