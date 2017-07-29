@@ -12,6 +12,7 @@ from time import sleep
 # TODO
 # Top like UI with columns
 # Fix output when number of interrupts is huge
+# Add filter by interrupt
 
 def diff_interrupt_sums(before, after):
     interrupt_dict_diff = defaultdict(dict)
