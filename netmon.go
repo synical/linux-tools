@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"github.com/rthornton128/goncurses"
 	"io/ioutil"
 	"log"
 	"strconv"
@@ -52,12 +52,20 @@ func (d *netDevice) readNetBytes() {
 	d.tx, _ = strconv.Atoi(ts)
 }
 
+/*
+  TODO
+  # Call end on SIGINT
+*/
 func main() {
-	c := make(chan netDevice)
+	stdscr, _ := goncurses.Init()
+	defer goncurses.End()
+
 	activeDevices := getActiveDevices()
 	if len(activeDevices) == 0 {
 		log.Fatal("No active devices found!")
 	}
+
+	c := make(chan netDevice)
 	for _, deviceName := range activeDevices {
 		device := &netDevice{rx: 0, tx: 0, name: deviceName}
 		go measureThroughput(c, device)
@@ -65,7 +73,9 @@ func main() {
 	for {
 		select {
 		case d := <-c:
-			fmt.Printf("\r%s: %drbps, %dwbps", d.name, d.rbps, d.tbps)
+			stdscr.Print("\r", d.rbps)
+			stdscr.Refresh()
+			stdscr.Clear()
 		}
 	}
 }
