@@ -4,8 +4,11 @@ import (
 	"github.com/rthornton128/goncurses"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -57,25 +60,43 @@ func (d *netDevice) readNetBytes() {
   # Call end on SIGINT
 */
 func main() {
+	c := make(chan netDevice)
+	done := make(chan bool)
+	sigs := make(chan os.Signal)
+
 	stdscr, _ := goncurses.Init()
 	defer goncurses.End()
+
+	signal.Notify(sigs, syscall.SIGINT)
+	go func() {
+		for {
+			s := <-sigs
+			switch s {
+			case syscall.SIGINT:
+				done <- true
+			}
+		}
+	}()
 
 	activeDevices := getActiveDevices()
 	if len(activeDevices) == 0 {
 		log.Fatal("No active devices found!")
 	}
 
-	c := make(chan netDevice)
 	for _, deviceName := range activeDevices {
 		device := &netDevice{rx: 0, tx: 0, name: deviceName}
 		go measureThroughput(c, device)
 	}
+
 	for {
 		select {
 		case d := <-c:
 			stdscr.Print("\r", d.rbps)
 			stdscr.Refresh()
 			stdscr.Clear()
+		case <-done:
+			goncurses.End()
+			os.Exit(0)
 		}
 	}
 }
