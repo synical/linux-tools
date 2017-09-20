@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/rthornton128/goncurses"
 	"io/ioutil"
 	"log"
@@ -57,7 +58,7 @@ func (d *netDevice) readNetBytes() {
 
 /*
   TODO
-  # Call end on SIGINT
+  * Make channel take list of netDevices
 */
 func main() {
 	c := make(chan netDevice)
@@ -91,7 +92,8 @@ func main() {
 	for {
 		select {
 		case d := <-c:
-			stdscr.Print("\r", d.rbps)
+			row := fmt.Sprintf("\r%s %d %d", d.name, d.rbps, d.tbps)
+			stdscr.Print(row)
 			stdscr.Refresh()
 			stdscr.Clear()
 		case <-done:
