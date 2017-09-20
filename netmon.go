@@ -20,11 +20,19 @@ type netDevice struct {
 	name                   string
 }
 
-func getActiveDevices() []string {
-	devices := make([]string, 0)
+func generateOutput(devs []*netDevice) string {
+	var output string = "\r"
+	for _, dev := range devs {
+		output = fmt.Sprintf("%s %d %d", dev.name, dev.rbps, dev.tbps)
+	}
+	return output
+}
+
+func getActiveDevices() []*netDevice {
+	devices := make([]*netDevice, 0)
 	dirs, _ := ioutil.ReadDir("/sys/class/net/")
 	for _, d := range dirs {
-		dev := d.Name()
+		dev := &netDevice{name: d.Name()}
 		b, _ := ioutil.ReadFile("/sys/class/net/" + d.Name() + "/operstate")
 		if strings.Contains(string(b), "up") {
 			devices = append(devices, dev)
@@ -33,14 +41,16 @@ func getActiveDevices() []string {
 	return devices
 }
 
-func measureThroughput(c chan netDevice, d *netDevice) {
+func measureThroughput(c chan []*netDevice, devs []*netDevice) {
 	for {
-		d.readNetBytes()
-		d.rbps = d.rx - d.previousRx
-		d.tbps = d.tx - d.previousTx
-		d.previousRx = d.rx
-		d.previousTx = d.tx
-		c <- *d
+		for _, d := range devs {
+			d.readNetBytes()
+			d.rbps = d.rx - d.previousRx
+			d.tbps = d.tx - d.previousTx
+			d.previousRx = d.rx
+			d.previousTx = d.tx
+		}
+		c <- devs
 		time.Sleep(time.Second * 1)
 	}
 }
@@ -61,7 +71,7 @@ func (d *netDevice) readNetBytes() {
   * Make channel take list of netDevices
 */
 func main() {
-	c := make(chan netDevice)
+	c := make(chan []*netDevice)
 	done := make(chan bool)
 	sigs := make(chan os.Signal)
 
@@ -84,16 +94,13 @@ func main() {
 		log.Fatal("No active devices found!")
 	}
 
-	for _, deviceName := range activeDevices {
-		device := &netDevice{rx: 0, tx: 0, name: deviceName}
-		go measureThroughput(c, device)
-	}
+	go measureThroughput(c, activeDevices)
 
 	for {
 		select {
-		case d := <-c:
-			row := fmt.Sprintf("\r%s %d %d", d.name, d.rbps, d.tbps)
-			stdscr.Print(row)
+		case devs := <-c:
+			output := generateOutput(devs)
+			stdscr.Print(output)
 			stdscr.Refresh()
 			stdscr.Clear()
 		case <-done:
