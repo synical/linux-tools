@@ -21,11 +21,11 @@ type netDevice struct {
 }
 
 func generateOutput(devs []*netDevice) string {
-	var output string = "\r"
+	rows := make([]string, 0)
 	for _, dev := range devs {
-		output = fmt.Sprintf("%s %d %d", dev.name, dev.rbps, dev.tbps)
+		rows = append(rows, fmt.Sprintf("%s %d %d", dev.name, dev.rbps, dev.tbps))
 	}
-	return output
+	return strings.Join(rows, "\n")
 }
 
 func getActiveDevices() []*netDevice {
@@ -66,10 +66,6 @@ func (d *netDevice) readNetBytes() {
 	d.tx, _ = strconv.Atoi(ts)
 }
 
-/*
-  TODO
-  * Make channel take list of netDevices
-*/
 func main() {
 	c := make(chan []*netDevice)
 	done := make(chan bool)
