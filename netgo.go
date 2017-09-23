@@ -23,7 +23,7 @@ type netDevice struct {
 func generateOutput(devs []*netDevice) string {
 	rows := make([]string, 0)
 	for _, dev := range devs {
-		rows = append(rows, fmt.Sprintf("%s %d %d", dev.name, dev.rbps, dev.tbps))
+		rows = append(rows, fmt.Sprintf("%s %d/bps %d/bps", dev.name, dev.rbps, dev.tbps))
 	}
 	return strings.Join(rows, "\n")
 }
