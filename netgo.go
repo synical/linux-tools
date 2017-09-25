@@ -23,7 +23,7 @@ type netDevice struct {
 func generateOutput(devs []*netDevice) string {
 	rows := make([]string, 0)
 	for _, dev := range devs {
-		rows = append(rows, fmt.Sprintf("%s %d/bps %d/bps", dev.name, dev.rbps, dev.tbps))
+		rows = append(rows, fmt.Sprintf("%s\n%s\t\t%d\t\t%d", header, dev.name, dev.rbps, dev.tbps))
 	}
 	return strings.Join(rows, "\n")
 }
@@ -66,13 +66,23 @@ func (d *netDevice) readNetBytes() {
 	d.tx, _ = strconv.Atoi(ts)
 }
 
+/*
+ * TODO
+ * Add columns for device name, rx and tx
+ */
+
+const header = "DEV\t\tTX\t\tRX"
+
 func main() {
+
 	c := make(chan []*netDevice)
 	done := make(chan bool)
 	sigs := make(chan os.Signal)
 
 	stdscr, _ := goncurses.Init()
 	defer goncurses.End()
+
+	goncurses.Cursor(0)
 
 	signal.Notify(sigs, syscall.SIGINT)
 	go func() {
