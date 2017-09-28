@@ -13,19 +13,17 @@ import (
 	"time"
 )
 
+const (
+	header = "DEV\t\tTX\t\tRX"
+	kb     = 1024
+	mb     = kb * 1024
+)
+
 type netDevice struct {
 	rx, tx                 int
 	previousRx, previousTx int
 	rbps, tbps             int
 	name                   string
-}
-
-func generateOutput(devs []*netDevice) string {
-	rows := make([]string, 0)
-	for _, dev := range devs {
-		rows = append(rows, fmt.Sprintf("%s\n%s\t\t%d\t\t%d", header, dev.name, dev.rbps, dev.tbps))
-	}
-	return strings.Join(rows, "\n")
 }
 
 func getActiveDevices() []*netDevice {
@@ -39,6 +37,33 @@ func getActiveDevices() []*netDevice {
 		}
 	}
 	return devices
+}
+
+func generateOutput(devs []*netDevice) string {
+	rows := make([]string, 0)
+	for _, dev := range devs {
+		rps := generateRateString(dev.rbps)
+		tps := generateRateString(dev.tbps)
+		rows = append(rows, fmt.Sprintf("%s\n%s\t\t%s\t\t%s", header, dev.name, rps, tps))
+	}
+	return strings.Join(rows, "\n")
+}
+
+func generateRateString(b int) string {
+	var d float64
+	var s string
+	switch {
+	case b >= mb:
+		d = mb
+		s = "MB/s"
+	case b >= kb:
+		d = kb
+		s = "KB/s"
+	default:
+		d = 1
+		s = "B/s"
+	}
+	return fmt.Sprintf("%.2f%s", float64(float64(b)/d), s)
 }
 
 func measureThroughput(c chan []*netDevice, devs []*netDevice) {
@@ -68,10 +93,8 @@ func (d *netDevice) readNetBytes() {
 
 /*
  * TODO
- * Add columns for device name, rx and tx
+ * Align columns nicely
  */
-
-const header = "DEV\t\tTX\t\tRX"
 
 func main() {
 
