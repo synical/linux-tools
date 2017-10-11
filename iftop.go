@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	header = "DEV\t\tTX\t\t\tRX"
+	header = "DEV\t\tRX\t\t\tTX"
 	kb     = 1024
 	mb     = kb * 1024
 )
