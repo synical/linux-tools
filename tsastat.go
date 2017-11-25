@@ -1,10 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strconv"
+	"os"
 	"strings"
 )
 
@@ -17,8 +18,8 @@ I think the point of this in the Brendan Gregg book
 is to demonstrate that this is quite hard in Linux
 */
 
-func getThreadState(pid string) string {
-	status, err := ioutil.ReadFile("/proc/" + pid + "/status")
+func getThreadState(taskPath string) string {
+	status, err := ioutil.ReadFile(taskPath + "/status")
 	if err != nil {
 		log.Fatal("Failed to read status file: ", err)
 	}
@@ -28,21 +29,31 @@ func getThreadState(pid string) string {
 }
 
 func main() {
-	tsMap := make(map[int]string)
-	dirs, err := ioutil.ReadDir("/proc/")
-	if err != nil {
-		log.Fatal("Failed to read /proc: ", err)
-	}
+	pidArg := flag.String("p", "", "")
+	flag.Parse()
+	pid := *pidArg
 
-	for _, dir := range dirs {
-		name := dir.Name()
-		if pid, err := strconv.Atoi(name); err == nil {
-			tsMap[pid] = getThreadState(name)
+	if _, err := os.Stat("/proc/" + pid); err != nil {
+		if os.IsNotExist(err) {
+			log.Fatal("PID '" + pid + "' does not exist")
 		}
 	}
 
-	for pid, state := range tsMap {
-		fmt.Printf("%d: %s\n", pid, state)
+	taskPath := "/proc/" + pid + "/task/"
+	tsMap := make(map[string]string)
+
+	dirs, err := ioutil.ReadDir(taskPath)
+	if err != nil {
+		log.Fatal("Failed to read task dir: ", err)
+	}
+
+	for _, thread := range dirs {
+		name := thread.Name()
+		tsMap[name] = getThreadState(taskPath + name)
+	}
+
+	for thread, state := range tsMap {
+		fmt.Printf("%s: %s\n", thread, state)
 	}
 
 	return
