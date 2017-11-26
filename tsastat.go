@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 /*
@@ -28,10 +29,33 @@ func getThreadState(taskPath string) string {
 	return state
 }
 
+func threadStateLoop(taskPath string, tsMap map[string]string, interval time.Duration) {
+	for {
+		dirs, err := ioutil.ReadDir(taskPath)
+		if err != nil {
+			log.Fatal("Failed to read task dir: ", err)
+		}
+
+		for _, thread := range dirs {
+			name := thread.Name()
+			tsMap[name] = getThreadState(taskPath + name)
+		}
+
+		for thread, state := range tsMap {
+			fmt.Printf("%s: %s\n", thread, state)
+		}
+		time.Sleep(time.Second * interval)
+	}
+}
+
 func main() {
 	pidArg := flag.String("p", "", "")
 	flag.Parse()
 	pid := *pidArg
+
+	if pid == "" {
+		log.Fatal("Must pass in pid with -p <pid>")
+	}
 
 	if _, err := os.Stat("/proc/" + pid); err != nil {
 		if os.IsNotExist(err) {
@@ -41,20 +65,7 @@ func main() {
 
 	taskPath := "/proc/" + pid + "/task/"
 	tsMap := make(map[string]string)
-
-	dirs, err := ioutil.ReadDir(taskPath)
-	if err != nil {
-		log.Fatal("Failed to read task dir: ", err)
-	}
-
-	for _, thread := range dirs {
-		name := thread.Name()
-		tsMap[name] = getThreadState(taskPath + name)
-	}
-
-	for thread, state := range tsMap {
-		fmt.Printf("%s: %s\n", thread, state)
-	}
+	threadStateLoop(taskPath, tsMap, time.Duration(1))
 
 	return
 }
