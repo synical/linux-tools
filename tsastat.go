@@ -13,6 +13,7 @@ import (
 /*
 Print time spent in each of the six thread states
   - Start for all threads of a process
+  - utime and stime for user and system time!
   - Diff per interval with interval arg passed
 
 I think the point of this in the Brendan Gregg book
@@ -29,7 +30,8 @@ func getThreadState(taskPath string) string {
 	return state
 }
 
-func threadStateLoop(taskPath string, tsMap map[string]string, interval time.Duration) {
+func threadStateLoop(taskPath string, interval time.Duration) {
+	tsMap := make(map[string]string)
 	for {
 		dirs, err := ioutil.ReadDir(taskPath)
 		if err != nil {
@@ -64,8 +66,7 @@ func main() {
 	}
 
 	taskPath := "/proc/" + pid + "/task/"
-	tsMap := make(map[string]string)
-	threadStateLoop(taskPath, tsMap, time.Duration(1))
+	threadStateLoop(taskPath, time.Duration(1))
 
 	return
 }
