@@ -36,17 +36,25 @@ https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of
 
 func getThreadStateInfo(tid string) map[string]float64 {
 	m := make(map[string]float64)
-	uptime := getUptime()
 	data := readFileWithError("/proc/" + tid + "/task/" + tid + "/stat")
 	stat := strings.Split(string(data), " ")
+	getCpuUsage(stat, m)
+	return m
+}
+
+func getCpuUsage(stat []string, m map[string]float64) {
+	uptime := getUptime()
 	utime, _ := strconv.ParseFloat(stat[13], 64)
 	stime, _ := strconv.ParseFloat(stat[14], 64)
 	total_time := utime + stime
 	start_time, _ := strconv.ParseFloat(stat[21], 64)
 	seconds := uptime - (start_time / float64(sc_clk_tck))
-	cpu_usage := ((total_time / float64(sc_clk_tck)) / seconds) * 100
-	m["cpu_usage"] = cpu_usage
-	return m
+	user_usage := ((utime / float64(sc_clk_tck)) / seconds) * 100
+	system_usage := ((stime / float64(sc_clk_tck)) / seconds) * 100
+	total_usage := ((total_time / float64(sc_clk_tck)) / seconds) * 100
+	m["user_usage"] = user_usage
+	m["system_usage"] = system_usage
+	m["total_usage"] = total_usage
 }
 
 func getUptime() float64 {
@@ -77,8 +85,9 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 			tsMap[name] = getThreadStateInfo(name)
 		}
 
+		fmt.Printf("TID\tUSR\tSYS\tCPU\n")
 		for thread, m := range tsMap {
-			fmt.Printf("%s: %.2f\n", thread, m["cpu_usage"])
+			fmt.Printf("%s\t%.2f\t%.2f\t%.2f\n", thread, m["user_usage"], m["system_usage"], m["total_usage"])
 		}
 		time.Sleep(time.Second * interval)
 	}
