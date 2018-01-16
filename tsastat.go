@@ -20,6 +20,7 @@ import "C"
 
 /* TODO
 - Print util sum of threads
+- Fix accumulation bug
 */
 
 var sc_clk_tck C.long = C.sysconf(C._SC_CLK_TCK)
