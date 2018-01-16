@@ -18,14 +18,8 @@ import (
 */
 import "C"
 
-/*
-Print time spent in each of the six thread states
-  - Start for all threads of a process
-  - utime and stime for user and system time!
-  - Diff per interval with interval arg passed
-
-I think the point of this in the Brendan Gregg book
-is to demonstrate that this is quite hard in Linux
+/* TODO
+- Print util sum of threads
 */
 
 var sc_clk_tck C.long = C.sysconf(C._SC_CLK_TCK)
@@ -34,15 +28,17 @@ var sc_clk_tck C.long = C.sysconf(C._SC_CLK_TCK)
 https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
 */
 
-func getThreadStateInfo(tid string) map[string]float64 {
-	m := make(map[string]float64)
+func getThreadStateInfo(tid string) map[string]interface{} {
+	m := make(map[string]interface{})
 	data := readFileWithError("/proc/" + tid + "/task/" + tid + "/stat")
 	stat := strings.Split(string(data), " ")
 	getCpuUsage(stat, m)
+	getProcessor(stat, m)
+	getTaskState(stat, m)
 	return m
 }
 
-func getCpuUsage(stat []string, m map[string]float64) {
+func getCpuUsage(stat []string, m map[string]interface{}) {
 	uptime := getUptime()
 	utime, _ := strconv.ParseFloat(stat[13], 64)
 	stime, _ := strconv.ParseFloat(stat[14], 64)
@@ -55,6 +51,15 @@ func getCpuUsage(stat []string, m map[string]float64) {
 	m["user_usage"] = user_usage
 	m["system_usage"] = system_usage
 	m["total_usage"] = total_usage
+}
+
+func getProcessor(stat []string, m map[string]interface{}) {
+	p, _ := strconv.ParseFloat(stat[38], 64)
+	m["processor"] = p
+}
+
+func getTaskState(stat []string, m map[string]interface{}) {
+	m["state"] = stat[2]
 }
 
 func getUptime() float64 {
@@ -73,7 +78,7 @@ func readFileWithError(path string) []byte {
 }
 
 func threadStateLoop(taskPath string, interval time.Duration) {
-	tsMap := make(map[string]map[string]float64)
+	tsMap := make(map[string]map[string]interface{})
 	for {
 		dirs, err := ioutil.ReadDir(taskPath)
 		if err != nil {
@@ -85,9 +90,9 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 			tsMap[name] = getThreadStateInfo(name)
 		}
 
-		fmt.Printf("TID\tUSR\tSYS\tCPU\n")
+		fmt.Printf("TID\tSTA\tCPU\tUSR\tSYS\tTOT\n")
 		for thread, m := range tsMap {
-			fmt.Printf("%s\t%.2f\t%.2f\t%.2f\n", thread, m["user_usage"], m["system_usage"], m["total_usage"])
+			fmt.Printf("%s\t%s\t%.0f\t%.2f\t%.2f\t%.2f\n", thread, m["state"], m["processor"], m["user_usage"], m["system_usage"], m["total_usage"])
 		}
 		time.Sleep(time.Second * interval)
 	}
