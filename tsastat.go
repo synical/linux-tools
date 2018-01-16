@@ -40,18 +40,12 @@ func getThreadStateInfo(tid string) map[string]interface{} {
 }
 
 func getCpuUsage(stat []string, m map[string]interface{}) {
-	uptime := getUptime()
 	utime, _ := strconv.ParseFloat(stat[13], 64)
 	stime, _ := strconv.ParseFloat(stat[14], 64)
-	total_time := utime + stime
-	start_time, _ := strconv.ParseFloat(stat[21], 64)
-	seconds := uptime - (start_time / float64(sc_clk_tck))
-	user_usage := ((utime / float64(sc_clk_tck)) / seconds) * 100
-	system_usage := ((stime / float64(sc_clk_tck)) / seconds) * 100
-	total_usage := ((total_time / float64(sc_clk_tck)) / seconds) * 100
-	m["user_usage"] = user_usage
-	m["system_usage"] = system_usage
-	m["total_usage"] = total_usage
+	totalTime := utime + stime
+	m["user_usage"] = utime
+	m["system_usage"] = stime
+	m["total_usage"] = totalTime
 }
 
 func getProcessor(stat []string, m map[string]interface{}) {
@@ -61,13 +55,6 @@ func getProcessor(stat []string, m map[string]interface{}) {
 
 func getTaskState(stat []string, m map[string]interface{}) {
 	m["state"] = stat[2]
-}
-
-func getUptime() float64 {
-	u := readFileWithError("/proc/uptime")
-	us := strings.Split(string(u), " ")[0]
-	uf, _ := strconv.ParseFloat(us, 64)
-	return uf
 }
 
 func readFileWithError(path string) []byte {
@@ -89,13 +76,23 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 		for _, thread := range dirs {
 			name := thread.Name()
 			tsMap[name] = getThreadStateInfo(name)
+			userUsage := tsMap[name]["user_usage"]
+			sysUsage := tsMap[name]["system_usage"]
+			totalUsage := tsMap[name]["total_usage"]
+			time.Sleep(time.Second * interval)
+			tsMap[name] = getThreadStateInfo(name)
+			userUsage = (((tsMap[name]["user_usage"].(float64) - userUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
+			sysUsage = (((tsMap[name]["system_usage"].(float64) - sysUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
+			totalUsage = (((tsMap[name]["total_usage"].(float64) - totalUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
+			tsMap[name]["user_usage"] = userUsage
+			tsMap[name]["system_usage"] = sysUsage
+			tsMap[name]["total_usage"] = totalUsage
 		}
 
 		fmt.Printf("TID\tSTA\tCPU\tUSR\tSYS\tTOT\n")
 		for thread, m := range tsMap {
 			fmt.Printf("%s\t%s\t%.0f\t%.2f\t%.2f\t%.2f\n", thread, m["state"], m["processor"], m["user_usage"], m["system_usage"], m["total_usage"])
 		}
-		time.Sleep(time.Second * interval)
 	}
 }
 
