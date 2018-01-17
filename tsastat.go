@@ -23,11 +23,13 @@ import "C"
 - Fix accumulation bug
 */
 
-var sc_clk_tck C.long = C.sysconf(C._SC_CLK_TCK)
+var sc_clk_tck float64 = float64(C.sysconf(C._SC_CLK_TCK))
 
-/*
-https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
-*/
+func calculateCpuTime(before map[string]interface{}, after map[string]interface{}, interval float64) {
+	before["user_usage"] = (((after["user_usage"].(float64) - before["user_usage"].(float64)) / sc_clk_tck) / interval) * 100
+	before["system_usage"] = (((after["system_usage"].(float64) - before["system_usage"].(float64)) / sc_clk_tck) / interval) * 100
+	before["total_usage"] = (((after["total_usage"].(float64) - before["total_usage"].(float64)) / sc_clk_tck) / interval) * 100
+}
 
 func getThreadStateInfo(tid string) map[string]interface{} {
 	m := make(map[string]interface{})
@@ -67,6 +69,7 @@ func readFileWithError(path string) []byte {
 
 func threadStateLoop(taskPath string, interval time.Duration) {
 	tsMap := make(map[string]map[string]interface{})
+	tsMapInterval := make(map[string]map[string]interface{})
 	for {
 		dirs, err := ioutil.ReadDir(taskPath)
 		if err != nil {
@@ -76,17 +79,9 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 		for _, thread := range dirs {
 			name := thread.Name()
 			tsMap[name] = getThreadStateInfo(name)
-			userUsage := tsMap[name]["user_usage"]
-			sysUsage := tsMap[name]["system_usage"]
-			totalUsage := tsMap[name]["total_usage"]
 			time.Sleep(time.Second * interval)
-			tsMap[name] = getThreadStateInfo(name)
-			userUsage = (((tsMap[name]["user_usage"].(float64) - userUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
-			sysUsage = (((tsMap[name]["system_usage"].(float64) - sysUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
-			totalUsage = (((tsMap[name]["total_usage"].(float64) - totalUsage.(float64)) / float64(sc_clk_tck)) / float64(interval)) * 100
-			tsMap[name]["user_usage"] = userUsage
-			tsMap[name]["system_usage"] = sysUsage
-			tsMap[name]["total_usage"] = totalUsage
+			tsMapInterval[name] = getThreadStateInfo(name)
+			calculateCpuTime(tsMap[name], tsMapInterval[name], float64(interval))
 		}
 
 		fmt.Printf("TID\tSTA\tCPU\tUSR\tSYS\tTOT\n")
@@ -113,6 +108,5 @@ func main() {
 
 	taskPath := "/proc/" + pid + "/task/"
 	threadStateLoop(taskPath, time.Duration(1))
-
 	return
 }
