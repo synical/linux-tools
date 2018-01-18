@@ -20,6 +20,7 @@ import "C"
 
 /* TODO
 - Print util sum of threads
+- Print util sum of children
 */
 
 var sc_clk_tck float64 = float64(C.sysconf(C._SC_CLK_TCK))
@@ -91,9 +92,12 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 }
 
 func main() {
-	pidArg := flag.String("p", "", "")
+	pidArg := flag.String("p", "", "<PID>")
+	intervalArg := flag.Int("i", 1, "<INTERVAL>")
 	flag.Parse()
+
 	pid := *pidArg
+	interval := *intervalArg
 
 	if pid == "" {
 		log.Fatal("Must pass in pid with -p <pid>")
@@ -106,6 +110,6 @@ func main() {
 	}
 
 	taskPath := "/proc/" + pid + "/task/"
-	threadStateLoop(taskPath, time.Duration(1))
+	threadStateLoop(taskPath, time.Duration(interval))
 	return
 }
