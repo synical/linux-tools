@@ -20,7 +20,6 @@ import "C"
 
 /* TODO
 - Print util sum of threads
-- Fix accumulation bug
 */
 
 var sc_clk_tck float64 = float64(C.sysconf(C._SC_CLK_TCK))
