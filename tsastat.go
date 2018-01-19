@@ -28,10 +28,12 @@ import "C"
 
 var sc_clk_tck float64 = float64(C.sysconf(C._SC_CLK_TCK))
 
-func calculateCpuTime(before map[string]interface{}, after map[string]interface{}, interval float64) {
-	before["user_usage"] = (((after["user_usage"].(float64) - before["user_usage"].(float64)) / sc_clk_tck) / interval) * 100
-	before["system_usage"] = (((after["system_usage"].(float64) - before["system_usage"].(float64)) / sc_clk_tck) / interval) * 100
-	before["total_usage"] = (((after["total_usage"].(float64) - before["total_usage"].(float64)) / sc_clk_tck) / interval) * 100
+func calculateCpuTime(before map[string]map[string]interface{}, after map[string]map[string]interface{}, interval float64) {
+	for name, _ := range after {
+		before[name]["user_usage"] = (((after[name]["user_usage"].(float64) - before[name]["user_usage"].(float64)) / sc_clk_tck) / interval) * 100
+		before[name]["system_usage"] = (((after[name]["system_usage"].(float64) - before[name]["system_usage"].(float64)) / sc_clk_tck) / interval) * 100
+		before[name]["total_usage"] = (((after[name]["total_usage"].(float64) - before[name]["total_usage"].(float64)) / sc_clk_tck) / interval) * 100
+	}
 }
 
 func getThreadStateInfo(tid string) map[string]interface{} {
@@ -82,10 +84,13 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 		for _, thread := range dirs {
 			name := thread.Name()
 			tsMap[name] = getThreadStateInfo(name)
-			time.Sleep(time.Second * interval)
-			tsMapInterval[name] = getThreadStateInfo(name)
-			calculateCpuTime(tsMap[name], tsMapInterval[name], float64(interval))
 		}
+		time.Sleep(time.Second * interval)
+		for _, thread := range dirs {
+			name := thread.Name()
+			tsMapInterval[name] = getThreadStateInfo(name)
+		}
+		calculateCpuTime(tsMap, tsMapInterval, float64(interval))
 
 		fmt.Printf("PID\tSTA\tCPU\tUSR\tSYS\tTOT\n")
 		for thread, m := range tsMap {
