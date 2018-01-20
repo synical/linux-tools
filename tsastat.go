@@ -86,7 +86,13 @@ func threadStateLoop(taskPath string, interval time.Duration) {
 
 		fmt.Printf("PID\tSTA\tCPU\tUSR\tSYS\tTOT\n")
 		for thread, m := range tsMap {
-			fmt.Printf("%s\t%s\t%.0f\t%.2f\t%.2f\t%.2f\n", thread, m["state"], m["processor"], m["user_usage"], m["system_usage"], m["total_usage"])
+			fmt.Printf("%s\t%s\t%.0f\t%.2f\t%.2f\t%.2f\n",
+				thread,
+				m["state"],
+				m["processor"],
+				m["user_usage"],
+				m["system_usage"],
+				m["total_usage"])
 		}
 	}
 }
