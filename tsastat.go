@@ -18,14 +18,6 @@ import (
 */
 import "C"
 
-/* TODO
-- Print util sum of threads
-- Print util sum of children
-- Default to just single PID information
-- Add arg for including tasks
-- Add arg for including children
-*/
-
 var sc_clk_tck float64 = float64(C.sysconf(C._SC_CLK_TCK))
 
 func calculateCpuTime(before map[string]map[string]interface{}, after map[string]map[string]interface{}, interval float64) {
