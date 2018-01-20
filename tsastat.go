@@ -117,5 +117,4 @@ func main() {
 
 	taskPath := "/proc/" + pid + "/task/"
 	threadStateLoop(taskPath, time.Duration(interval))
-	return
 }
