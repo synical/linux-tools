@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+/*
+  TODO
+  - Flag for interval (default to a second)
+  - Add column including WSS as percentage of RES
+*/
+
 type Process struct {
 	Pid   string
 	RefKb int64
