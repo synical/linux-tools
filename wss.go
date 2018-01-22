@@ -4,12 +4,20 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 )
+
+/*
+# include <unistd.h>
+*/
+import "C"
+
+var pagesize = int64(C.sysconf(C._SC_PAGESIZE))
 
 /*
   TODO
@@ -21,6 +29,7 @@ import (
 type Process struct {
 	Pid   string
 	RefKb int64
+	RSSKb int64
 }
 
 func check(err error) {
@@ -50,13 +59,20 @@ func (p *Process) countRefKb() {
 			kb := strings.Split(l, ":")[1]
 			kb = strings.Replace(kb, " ", "", -1)
 			kb = strings.Replace(kb, "kB", "", -1)
-			rkb += stringToKb(kb)
+			rkb += stringToInt(kb)
 		}
 	}
 	p.RefKb = rkb
 }
 
-func stringToKb(kb string) int64 {
+func (p *Process) getRSS() {
+	d, err := ioutil.ReadFile("/proc/" + p.Pid + "/statm")
+	check(err)
+	rss := strings.Split(string(d), " ")[1]
+	p.RSSKb = (stringToInt(rss) * pagesize) / 1024
+}
+
+func stringToInt(kb string) int64 {
 	i, err := strconv.ParseInt(kb, 0, 64)
 	check(err)
 	return i
@@ -72,6 +88,7 @@ func main() {
 	}
 	p.Pid = *pidArg
 	interval := time.Duration(*intervalArg)
+	p.getRSS()
 	p.countRefKb()
 	p.clearRefs()
 	fmt.Printf("WSS\n")
