@@ -66,16 +66,18 @@ func stringToKb(kb string) int64 {
 func main() {
 	var p = Process{}
 	pidArg := flag.String("p", "", "<PID>")
+	intervalArg := flag.Int("i", 1, "<INTERVAL>")
 	flag.Parse()
 	if *pidArg == "" {
 		log.Fatal("Must pass in pid with -p <pid>")
 	}
 	p.Pid = *pidArg
+	interval := time.Duration(*intervalArg)
 	p.countRefKb()
 	p.clearRefs()
 	fmt.Printf("WSS\n")
 	for {
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * interval)
 		p.countRefKb()
 		fmt.Printf("%dkb\n", p.RefKb)
 	}
