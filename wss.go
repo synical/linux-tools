@@ -13,7 +13,6 @@ import (
 
 /*
   TODO
-  - Flag for interval (default to a second)
   - Add column including WSS as percentage of RES
 */
 
