@@ -17,6 +17,8 @@ import (
   - Add column including WSS as percentage of RES
 */
 
+/* http://www.brendangregg.com/blog/2018-01-17/measure-working-set-size.html */
+
 type Process struct {
 	Pid   string
 	RefKb int64
