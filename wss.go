@@ -21,15 +21,16 @@ var pagesize = int64(C.sysconf(C._SC_PAGESIZE))
 
 /*
   TODO
-  - Add column including WSS as percentage of RES
+  - Measure MB instead of KB
 */
 
 /* http://www.brendangregg.com/blog/2018-01-17/measure-working-set-size.html */
 
 type Process struct {
-	Pid   string
-	RefKb int64
-	RSSKb int64
+	Pid      string
+	RefKb    int64
+	RSSKb    int64
+	RefOfRSS float64
 }
 
 func check(err error) {
@@ -65,6 +66,16 @@ func (p *Process) countRefKb() {
 	p.RefKb = rkb
 }
 
+func (p *Process) getMemStats() {
+	p.countRefKb()
+	p.getRSS()
+	p.getRefOfRSS()
+}
+
+func (p *Process) getRefOfRSS() {
+	p.RefOfRSS = (float64(p.RefKb) / float64(p.RSSKb)) * 100
+}
+
 func (p *Process) getRSS() {
 	d, err := ioutil.ReadFile("/proc/" + p.Pid + "/statm")
 	check(err)
@@ -91,10 +102,10 @@ func main() {
 	p.getRSS()
 	p.countRefKb()
 	p.clearRefs()
-	fmt.Printf("WSS\n")
+	fmt.Printf("WSS\t%%RSS\tRSS\n")
 	for {
 		time.Sleep(time.Second * interval)
-		p.countRefKb()
-		fmt.Printf("%dkb\n", p.RefKb)
+		p.getMemStats()
+		fmt.Printf("%dkb\t%.0f%%\t%dkb\n", p.RefKb, p.RefOfRSS, p.RSSKb)
 	}
 }
