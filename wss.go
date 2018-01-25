@@ -19,18 +19,15 @@ import "C"
 
 var pagesize = int64(C.sysconf(C._SC_PAGESIZE))
 
-/*
-  TODO
-  - Measure MB instead of KB
-*/
+const MB = 1048576
 
 /* http://www.brendangregg.com/blog/2018-01-17/measure-working-set-size.html */
 
 type Process struct {
 	Pid      string
-	RefKb    int64
-	RSSKb    int64
-	RefOfRSS float64
+	RefMb    int64
+	RSSMb    int64
+	PctOfRSS float64
 }
 
 func check(err error) {
@@ -63,28 +60,28 @@ func (p *Process) countRefKb() {
 			rkb += stringToInt(kb)
 		}
 	}
-	p.RefKb = rkb
+	p.RefMb = (rkb * 1024) / MB
 }
 
 func (p *Process) getMemStats() {
 	p.countRefKb()
 	p.getRSS()
-	p.getRefOfRSS()
+	p.getPctOfRSS()
 }
 
-func (p *Process) getRefOfRSS() {
-	p.RefOfRSS = (float64(p.RefKb) / float64(p.RSSKb)) * 100
+func (p *Process) getPctOfRSS() {
+	p.PctOfRSS = (float64(p.RefMb) / float64(p.RSSMb)) * 100
 }
 
 func (p *Process) getRSS() {
 	d, err := ioutil.ReadFile("/proc/" + p.Pid + "/statm")
 	check(err)
 	rss := strings.Split(string(d), " ")[1]
-	p.RSSKb = (stringToInt(rss) * pagesize) / 1024
+	p.RSSMb = (stringToInt(rss) * pagesize) / MB
 }
 
-func stringToInt(kb string) int64 {
-	i, err := strconv.ParseInt(kb, 0, 64)
+func stringToInt(s string) int64 {
+	i, err := strconv.ParseInt(s, 0, 64)
 	check(err)
 	return i
 }
@@ -102,10 +99,10 @@ func main() {
 	p.getRSS()
 	p.countRefKb()
 	p.clearRefs()
-	fmt.Printf("WSS\t%%RSS\tRSS\n")
+	fmt.Printf("WSS\t\t%%RSS\t\tRSS\n")
 	for {
 		time.Sleep(time.Second * interval)
 		p.getMemStats()
-		fmt.Printf("%dkb\t%.0f%%\t%dkb\n", p.RefKb, p.RefOfRSS, p.RSSKb)
+		fmt.Printf("%dmb\t\t%.0f%%\t\t%dmb\n", p.RefMb, p.PctOfRSS, p.RSSMb)
 	}
 }
